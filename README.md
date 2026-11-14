@@ -1,4 +1,4 @@
-# 🌸 LINE Bot Active Intention & 6-Turn Rolling Memory (GAS)
+# 🧠 Stop Paying for Vector DBs — 6-Turn Rolling Memory + Active Intention for LINE Bot ($0)
 
 > English | [繁體中文](./README.zh-TW.md)
 
