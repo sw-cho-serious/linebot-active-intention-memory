@@ -1,23 +1,26 @@
-# 🌸 LINE Bot 主動懸念破冰 ＆ CacheService 6輪滾動短期記憶 (GAS)
+# 🌸 LINE Bot Active Intention & 6-Turn Rolling Memory (GAS)
 
-> 讓你的 LINE AI 助理不再只是「冷冰冰的一問一答」，而是擁有「開場主動惦記你的心頭懸念」與「90分鐘超省成本的短期對話記憶」！
+> English | [繁體中文](./README.zh-TW.md)
 
-## ✨ 核心亮點
+Give your LINE AI assistant more than cold, stateless Q&A. This lightweight pattern adds **active intention ice-breaking** at the start of a conversation and **zero-cost 90-minute rolling short-term memory** powered by Google Apps Script's native `CacheService`.
 
-1. **🎭 心頭懸念主動破冰 (Active Intention)**：
-   - 剛開場對話時，AI 大腦會主動帶出惦記的話題破冰（例如：昨天的待辦、休假關心、昨晚聊到的話題）。
-   - 當使用者一接話，進入連續對話後，**懸念自動閉嘴銷帳**，絕不跳痛插嘴打斷節奏！
-2. **🧠 0 元 CacheService 滾動記憶**：
-   - 使用 Google Apps Script 原生 `CacheService.getUserCache()`。
-   - 記錄最近 6 輪（12 句）純文字對話，90 分鐘（5400 秒）未對話自動洗白成新的一輪。
-   - **完全不花資料庫費用**、不存沉重的 Flex 卡片或工具 JSON，防止 Thought Signature 暴走與 Token 膨脹！
+## ✨ Highlights
 
-## 🚀 快速安裝與使用
+1. **🎭 Active Intention Ice-Breaking**:
+   - When a new conversation starts, the AI naturally brings up a pending topic or follow-up you care about (e.g., yesterday's unfinished task, a check-in, or an open thread).
+   - Once the user replies and enters a continuous back-and-forth, **the intention is automatically consumed and silenced** so the AI never interrupts the flow awkwardly.
+2. **🧠 Zero-Cost `CacheService` Rolling Memory**:
+   - Uses Google Apps Script's built-in `CacheService.getUserCache()`.
+   - Retains the last **6 turns (12 messages)** of plain text and automatically expires after **90 minutes (5,400 seconds)** of inactivity.
+   - **No database fees**, no heavy Flex cards or raw tool JSON stored — preventing Thought Signature bloat and runaway token costs.
 
-### 1. 放入短期快取記憶模組
+## 🚀 Quick Start
+
+### 1. Add the Short-Term Cache Memory Module
+
 ```javascript
 /**
- * 🧠 短期對話快取記憶 (CacheService 90分鐘滾動記憶)
+ * 🧠 Short-Term Chat Cache (CacheService 90-min Rolling Memory)
  */
 function getShortChatHistory_(userId) {
   if (!userId) return [];
@@ -34,20 +37,21 @@ function appendShortChatHistory_(userId, userText, modelText) {
     const hist = getShortChatHistory_(userId);
     hist.push({ role: 'user', parts: [{ text: String(userText).substring(0, 400) }] });
     hist.push({ role: 'model', parts: [{ text: String(modelText).substring(0, 600) }] });
-    // 只留最近 6 輪（12 則訊息），90 分鐘未對話自動過期清空
+    // Keep only the last 6 turns (12 messages); expires after 90 min of inactivity
     const trimmed = hist.slice(-12);
     CacheService.getUserCache().put('CHAT_HIST_' + userId, JSON.stringify(trimmed), 5400);
   } catch (e) {}
 }
 ```
 
-### 2. 接進你的 Gemini / LLM 呼叫鏈
+### 2. Wire It into Your Gemini / LLM Call Chain
+
 ```javascript
-// 1. 區分真人互動與背景腳本
+// 1. Distinguish interactive human chat from background triggers
 const isInteractive = Boolean(userId && userQuery);
 const shortHistory = isInteractive ? getShortChatHistory_(userId) : [];
 
-// 2. 只有【真人互動】且【剛開場（短期記憶是空的）】才注入懸念！
+// 2. Inject active intention ONLY when interactive AND opening a fresh session (empty short-term memory)
 let intentionInjected = false;
 if (isInteractive && shortHistory.length === 0 && typeof getIntentionPromptInjection === 'function') {
   const inj = getIntentionPromptInjection(userQuery);
@@ -57,12 +61,12 @@ if (isInteractive && shortHistory.length === 0 && typeof getIntentionPromptInjec
   }
 }
 
-// 3. 把過去幾輪對話接在前面，最新這句放最後
+// 3. Prepend rolling history before the latest user message
 const payloadContents = shortHistory.concat([
-  { role: 'user', parts: [{ text: '使用者輸入：' + promptText }] }
+  { role: 'user', parts: [{ text: 'User input: ' + promptText }] }
 ]);
 
-// 4. 拿到模型 output 後安全寫入記憶
+// 4. Safely persist memory and consume intention after a valid model response
 if (isInteractive) {
   const cleanOut = output.replace(/<!--[\s\S]*?-->/g, '').trim();
   if (cleanOut && !cleanOut.startsWith('⚠️')) {
@@ -75,4 +79,4 @@ if (isInteractive) {
 ```
 
 ## 📄 License
-MIT License
+[MIT License](./LICENSE)
